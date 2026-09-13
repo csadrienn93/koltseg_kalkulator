@@ -59,20 +59,22 @@ def fedezeti_pont_szamitas(havi_fix_koltseg, fedezet):
 
 # Ha van megadott energiafogyasztás, azt használja, de ha nincs, akkor becsül.
 def energiafogyasztas_meghatarozasa(energiafogyasztas, nyomtatasi_ido, nyomtato_fogyasztas):
-    if pd.notna(energiafogyasztas):
+    # Ha van megadott, nullánál nagyobb energiafogyasztás, azt használja.
+    # Ha nincs, akkor becsüli.
+    if pd.notna(energiafogyasztas) and energiafogyasztas > 0:
         return energiafogyasztas
     return energiafogyasztas_becslese(
         nyomtatasi_ido,
         nyomtato_fogyasztas
     )
-def platform_dij_szamitas(eladasi_ar, jutalek_szazalek, minimum_dij, afa_kulcs):
-    jutalek = eladasi_ar * jutalek_szazalek / 100
-    if jutalek < minimum_dij:
-        jutalek = minimum_dij
-    platform_dij = jutalek * (1 + afa_kulcs / 100)
-    return platform_dij
+def haszonhanyad_szamitas(fedezet, eladasi_ar):
+    if eladasi_ar <= 0:
+        return 0
 
+    haszonhanyad = fedezet / eladasi_ar * 100
 
+    return haszonhanyad
+    
 if __name__ == "__main__":
 
     adatok, beallitasok = excel_adatok_beolvasasa()
@@ -113,7 +115,7 @@ if __name__ == "__main__":
     ),
     axis=1
 )
-adatok["felhasznalt_energia"] = adatok.apply(
+    adatok["felhasznalt_energia"] = adatok.apply(
     lambda sor: energiafogyasztas_meghatarozasa(
         sor["energiafogyasztas"],
         sor["nyomtatasi_ido"],
@@ -121,7 +123,7 @@ adatok["felhasznalt_energia"] = adatok.apply(
     ),
     axis=1
 )
-adatok["energiakoltseg"] = adatok.apply(
+    adatok["energiakoltseg"] = adatok.apply(
     lambda sor: energiakoltseg_szamitas(
         sor["felhasznalt_energia"],
         aram_ar,
@@ -129,7 +131,7 @@ adatok["energiakoltseg"] = adatok.apply(
     ),
     axis=1
 )
-adatok["termek_kozvetlen_koltsege"] = adatok.apply(
+    adatok["termek_kozvetlen_koltsege"] = adatok.apply(
     lambda sor: kozvetlen_koltseg_szamitas(
         sor["anyagkoltseg"],
         sor["energiakoltseg"],
@@ -137,7 +139,7 @@ adatok["termek_kozvetlen_koltsege"] = adatok.apply(
     ),
     axis=1
 )
-adatok["platform_dij"] = adatok["eladasi_ar"].apply(
+    adatok["platform_dij"] = adatok["eladasi_ar"].apply(
     lambda ar: platform_dij_szamitas(
         ar,
         platform_jutalek,
@@ -145,7 +147,7 @@ adatok["platform_dij"] = adatok["eladasi_ar"].apply(
         afa_kulcs
     )
 )
-adatok["fedezet"] = adatok.apply(
+    adatok["fedezet"] = adatok.apply(
     lambda sor: fedezet_szamitas(
         sor["eladasi_ar"],
         sor["termek_kozvetlen_koltsege"],
@@ -153,27 +155,18 @@ adatok["fedezet"] = adatok.apply(
     ),
     axis=1
 )
-adatok["platform_dij"] = adatok["eladasi_ar"].apply(
-    lambda ar: platform_dij_szamitas(
-        ar,
-        platform_jutalek,
-        platform_minimum_dij,
-        afa_kulcs
-    )
-)
 
-print("\nKalkuláció eredménye:")
+    print("\nKalkuláció eredménye:")
 
-print(f"Termék: {adatok['termek'].iloc[0]}")
-print(f"Selejt: {adatok['selejt'].iloc[0]:g} db")
-print(f"Felhasznált alapanyag: {adatok['felhasznalt_alapanyag'].iloc[0]:g} g")
-print(f"Alapanyag ára: {adatok['anyag_ar'].iloc[0]:g} Ft/kg")
-print(f"Nyomtatási idő: {adatok['nyomtatasi_ido'].iloc[0]:g} perc")
-print(f"Felhasznált energia: {adatok['felhasznalt_energia'].iloc[0]:g} kWh")
-
-print(f"Anyagköltség: {adatok['anyagkoltseg'].iloc[0]:.2f} Ft")
-print(f"Energiaköltség: {adatok['energiakoltseg'].iloc[0]:.2f} Ft")
-print(f"Közvetlen költség: {adatok['termek_kozvetlen_koltsege'].iloc[0]:.2f} Ft")
-print(f"Eladási ár: {adatok['eladasi_ar'].iloc[0]:g} Ft")
-print(f"Platformdíj: {adatok['platform_dij'].iloc[0]:.2f} Ft")
-print(f"Fedezet: {adatok['fedezet'].iloc[0]:.2f} Ft")
+    print(f"Termék: {adatok['termek'].iloc[0]}")
+    print(f"Selejt: {adatok['selejt'].iloc[0]:g} db")
+    print(f"Felhasznált alapanyag: {adatok['felhasznalt_alapanyag'].iloc[0]:g} g")
+    print(f"Alapanyag ára: {adatok['anyag_ar'].iloc[0]:g} Ft/kg")
+    print(f"Nyomtatási idő: {adatok['nyomtatasi_ido'].iloc[0]:g} perc")
+    print(f"Felhasznált energia: {adatok['felhasznalt_energia'].iloc[0]:.2f} kWh")
+    print(f"Anyagköltség: {adatok['anyagkoltseg'].iloc[0]:.0f} Ft")
+    print(f"Energiaköltség: {adatok['energiakoltseg'].iloc[0]:.0f} Ft")
+    print(f"Közvetlen költség: {adatok['termek_kozvetlen_koltsege'].iloc[0]:.0f} Ft")
+    print(f"Eladási ár: {adatok['eladasi_ar'].iloc[0]:g} Ft")
+    print(f"Platformdíj: {adatok['platform_dij'].iloc[0]:.0f} Ft")
+    print(f"Fedezet: {adatok['fedezet'].iloc[0]:.0f} Ft")
