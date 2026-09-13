@@ -3,7 +3,6 @@ import math
 
 from adatkezeles import excel_adatok_beolvasasa
 
-
 def anyagkoltseg_szamitas(felhasznalt_alapanyag, anyag_ar, selejt):
     # Kiszámítja az anyagköltséget a selejtes nyomtatásokkal együtt.
     nyomtatasok_szama = selejt + 1
@@ -13,7 +12,6 @@ def anyagkoltseg_szamitas(felhasznalt_alapanyag, anyag_ar, selejt):
         * nyomtatasok_szama
     )
     return anyagkoltseg
-
 
 def beallitas_keresese(beallitasok, parameter_nev):
     for _, sor in beallitasok.iterrows():
@@ -59,8 +57,6 @@ def fedezeti_pont_szamitas(havi_fix_koltseg, fedezet):
 
 # Ha van megadott energiafogyasztás, azt használja, de ha nincs, akkor becsül.
 def energiafogyasztas_meghatarozasa(energiafogyasztas, nyomtatasi_ido, nyomtato_fogyasztas):
-    # Ha van megadott, nullánál nagyobb energiafogyasztás, azt használja.
-    # Ha nincs, akkor becsüli.
     if pd.notna(energiafogyasztas) and energiafogyasztas > 0:
         return energiafogyasztas
     return energiafogyasztas_becslese(
@@ -103,10 +99,7 @@ if __name__ == "__main__":
     beallitasok,
     "havi_fix_koltseg"
 )
-
-   # print("Áram ára:", aram_ar, "Ft/kWh")
-   # print("Nyomtató fogyasztása:", nyomtato_fogyasztas, "W")
-
+   
     adatok["anyagkoltseg"] = adatok.apply(
     lambda sor: anyagkoltseg_szamitas(
         sor["felhasznalt_alapanyag"],
@@ -157,7 +150,6 @@ if __name__ == "__main__":
 )
 
     print("\nKalkuláció eredménye:")
-
     print(f"Termék: {adatok['termek'].iloc[0]}")
     print(f"Selejt: {adatok['selejt'].iloc[0]:g} db")
     print(f"Felhasznált alapanyag: {adatok['felhasznalt_alapanyag'].iloc[0]:g} g")

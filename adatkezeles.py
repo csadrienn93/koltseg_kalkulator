@@ -1,7 +1,5 @@
 from pathlib import Path
-
 import pandas as pd
-
 
 ADATFAJL = Path(__file__).parent / "adatok" / "termekadatok.xlsx"
 
@@ -20,7 +18,6 @@ def excel_adatok_beolvasasa():
     )
 
     return adatok, beallitasok
-
 
 if __name__ == "__main__":
 
