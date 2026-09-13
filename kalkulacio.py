@@ -1,8 +1,17 @@
+import pandas as pd
+import math
+
 from adatkezeles import excel_adatok_beolvasasa
 
 
-def anyagkoltseg_szamitas(felhasznalt_alapanyag, anyag_ar):
-    anyagkoltseg = felhasznalt_alapanyag / 1000 * anyag_ar
+def anyagkoltseg_szamitas(felhasznalt_alapanyag, anyag_ar, selejt):
+    # Kiszámítja az anyagköltséget a selejtes nyomtatásokkal együtt.
+    nyomtatasok_szama = selejt + 1
+    anyagkoltseg = (
+        felhasznalt_alapanyag / 1000
+        * anyag_ar
+        * nyomtatasok_szama
+    )
     return anyagkoltseg
 
 
@@ -17,17 +26,18 @@ def energiafogyasztas_becslese(nyomtatasi_ido, nyomtato_fogyasztas):
     energiafogyasztas = nyomtatasi_ido_ora * nyomtato_fogyasztas / 1000
     return energiafogyasztas
 
-def energiakoltseg_szamitas(energiafogyasztas, aram_ar):
-    energiakoltseg = energiafogyasztas * aram_ar
+def energiakoltseg_szamitas(energiafogyasztas, aram_ar, selejt):
+    nyomtatasok_szama = selejt + 1
+    energiakoltseg = (
+        energiafogyasztas
+        * aram_ar
+        * nyomtatasok_szama
+    )
     return energiakoltseg
 
 def kozvetlen_koltseg_szamitas(anyagkoltseg, energiakoltseg, csomagolasi_koltseg):
     kozvetlen_koltseg = anyagkoltseg + energiakoltseg + csomagolasi_koltseg
     return kozvetlen_koltseg
-
-def fedezet_szamitas(eladasi_ar, termek_kozvetlen_koltsege):
-    fedezet = eladasi_ar - termek_kozvetlen_koltsege
-    return fedezet
 
 def platform_dij_szamitas(eladasi_ar, jutalek_szazalek, minimum_dij, afa_kulcs):
     jutalek = eladasi_ar * jutalek_szazalek / 100
@@ -39,6 +49,28 @@ def platform_dij_szamitas(eladasi_ar, jutalek_szazalek, minimum_dij, afa_kulcs):
 def fedezet_szamitas(eladasi_ar, termek_kozvetlen_koltsege, platform_dij):
     fedezet = eladasi_ar - termek_kozvetlen_koltsege - platform_dij
     return fedezet
+
+def fedezeti_pont_szamitas(havi_fix_koltseg, fedezet):
+    if fedezet <= 0:
+        return None
+    fedezeti_pont = havi_fix_koltseg / fedezet
+
+    return math.ceil(fedezeti_pont)
+
+# Ha van megadott energiafogyasztás, azt használja, de ha nincs, akkor becsül.
+def energiafogyasztas_meghatarozasa(energiafogyasztas, nyomtatasi_ido, nyomtato_fogyasztas):
+    if pd.notna(energiafogyasztas):
+        return energiafogyasztas
+    return energiafogyasztas_becslese(
+        nyomtatasi_ido,
+        nyomtato_fogyasztas
+    )
+def platform_dij_szamitas(eladasi_ar, jutalek_szazalek, minimum_dij, afa_kulcs):
+    jutalek = eladasi_ar * jutalek_szazalek / 100
+    if jutalek < minimum_dij:
+        jutalek = minimum_dij
+    platform_dij = jutalek * (1 + afa_kulcs / 100)
+    return platform_dij
 
 
 if __name__ == "__main__":
@@ -65,28 +97,37 @@ if __name__ == "__main__":
     beallitasok,
     "afa_kulcs"
     )
+    havi_fix_koltseg = beallitas_keresese(
+    beallitasok,
+    "havi_fix_koltseg"
+)
 
-    print("Áram ára:", aram_ar, "Ft/kWh")
-    print("Nyomtató fogyasztása:", nyomtato_fogyasztas, "W")
+   # print("Áram ára:", aram_ar, "Ft/kWh")
+   # print("Nyomtató fogyasztása:", nyomtato_fogyasztas, "W")
 
     adatok["anyagkoltseg"] = adatok.apply(
     lambda sor: anyagkoltseg_szamitas(
         sor["felhasznalt_alapanyag"],
-        sor["anyag_ar"]
+        sor["anyag_ar"],
+        sor["selejt"]
     ),
     axis=1
 )
-adatok["becsult_energiafogyasztas"] = adatok["nyomtatasi_ido"].apply(
-    lambda ido: energiafogyasztas_becslese(
-        ido,
+adatok["felhasznalt_energia"] = adatok.apply(
+    lambda sor: energiafogyasztas_meghatarozasa(
+        sor["energiafogyasztas"],
+        sor["nyomtatasi_ido"],
         nyomtato_fogyasztas
-    )
+    ),
+    axis=1
 )
-adatok["energiakoltseg"] = adatok["becsult_energiafogyasztas"].apply(
-    lambda fogyasztas: energiakoltseg_szamitas(
-        fogyasztas,
-        aram_ar
-    )
+adatok["energiakoltseg"] = adatok.apply(
+    lambda sor: energiakoltseg_szamitas(
+        sor["felhasznalt_energia"],
+        aram_ar,
+        sor["selejt"]
+    ),
+    axis=1
 )
 adatok["termek_kozvetlen_koltsege"] = adatok.apply(
     lambda sor: kozvetlen_koltseg_szamitas(
@@ -112,17 +153,27 @@ adatok["fedezet"] = adatok.apply(
     ),
     axis=1
 )
+adatok["platform_dij"] = adatok["eladasi_ar"].apply(
+    lambda ar: platform_dij_szamitas(
+        ar,
+        platform_jutalek,
+        platform_minimum_dij,
+        afa_kulcs
+    )
+)
 
-print(adatok[[
-    "termek",
-    "felhasznalt_alapanyag",
-    "anyag_ar",
-    "anyagkoltseg",
-    "nyomtatasi_ido",
-    "becsult_energiafogyasztas",
-    "energiakoltseg",
-    "termek_kozvetlen_koltsege",
-    "fedezet",
-    "eladasi_ar",
-    "platform_dij"
-]])
+print("\nKalkuláció eredménye:")
+
+print(f"Termék: {adatok['termek'].iloc[0]}")
+print(f"Selejt: {adatok['selejt'].iloc[0]:g} db")
+print(f"Felhasznált alapanyag: {adatok['felhasznalt_alapanyag'].iloc[0]:g} g")
+print(f"Alapanyag ára: {adatok['anyag_ar'].iloc[0]:g} Ft/kg")
+print(f"Nyomtatási idő: {adatok['nyomtatasi_ido'].iloc[0]:g} perc")
+print(f"Felhasznált energia: {adatok['felhasznalt_energia'].iloc[0]:g} kWh")
+
+print(f"Anyagköltség: {adatok['anyagkoltseg'].iloc[0]:.2f} Ft")
+print(f"Energiaköltség: {adatok['energiakoltseg'].iloc[0]:.2f} Ft")
+print(f"Közvetlen költség: {adatok['termek_kozvetlen_koltsege'].iloc[0]:.2f} Ft")
+print(f"Eladási ár: {adatok['eladasi_ar'].iloc[0]:g} Ft")
+print(f"Platformdíj: {adatok['platform_dij'].iloc[0]:.2f} Ft")
+print(f"Fedezet: {adatok['fedezet'].iloc[0]:.2f} Ft")
