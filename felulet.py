@@ -8,7 +8,7 @@ from kalkulacio import (
     energiakoltseg_szamitas,
     kozvetlen_koltseg_szamitas,
     platform_dij_szamitas,
-    fedezet_szamitas,
+    becsult_eredmeny_szamitas,
     haszonhanyad_szamitas
 )
 
@@ -39,21 +39,17 @@ with bal:
         step=100
     )
     felhasznalt_alapanyag = st.number_input(
-        "Felhasznált alapanyag (g)",
+        "Összes felhasznált alapanyag (g, selejttel együtt)",
         min_value=0,
-        step=1
-    )
+        step=1,
+        help="Add meg az értékesíthető darab elkészítéséhez összesen felhasznált alapanyag mennyiségét, beleértve a selejtes nyomtatások anyagigényét is."
+)
     nyomtatasi_ido = st.number_input(
-        "Nyomtatási idő (perc)",
+        "Összes nyomtatási idő (perc, selejttel együtt)",
         min_value=0,
         step=1
     )
 with jobb:
-    energiafogyasztas = st.number_input(
-        "Energiafogyasztás (kWh) – ha ismert",
-        min_value=0.0,
-        step=0.01
-    )
     csomagolasi_koltseg = st.number_input(
         "Csomagolási költség (Ft)",
         min_value=0,
@@ -64,12 +60,20 @@ with jobb:
         min_value=0,
         step=100
     )
-    selejt = st.number_input(
-        "Selejtek száma (db)",
+    szallitasi_dij = st.number_input(
+        "Vevő által fizetett szállítási díj (Ft)",
         min_value=0,
-        step=1
+        step=100
     )
-
+    energiafogyasztas = st.number_input(
+       "Összes mért energiafogyasztás (kWh, selejttel együtt)",
+        min_value=0.0,
+        step=0.01,
+        format="%.3f",
+        help="Add meg az értékesíthető darab elkészítéséhez összesen felhasznált mért energiát, beleértve a selejtes nyomtatásokat is. Ha nincs mért adat, hagyd 0 értéken."
+    )
+    
+   
 if st.button("Számítás"):
 
     if not termek:
@@ -99,18 +103,13 @@ if st.button("Számítás"):
             beallitasok,
             "platform_jutalek"
         )
-        platform_minimum_dij = beallitas_keresese(
+        platform_helyi_felar = beallitas_keresese(
             beallitasok,
-            "platform_minimum_dij"
-        )
-        afa_kulcs = beallitas_keresese(
-            beallitasok,
-            "afa_kulcs"
+            "platform_helyi_felar"
         )
         anyagkoltseg = anyagkoltseg_szamitas(
             felhasznalt_alapanyag,
-            anyag_ar,
-            selejt
+            anyag_ar
         )
         felhasznalt_energia = energiafogyasztas_meghatarozasa(
             energiafogyasztas,
@@ -119,9 +118,8 @@ if st.button("Számítás"):
         )
         energiakoltseg = energiakoltseg_szamitas(
             felhasznalt_energia,
-            aram_ar,
-            selejt
-        )
+            aram_ar
+        )   
         kozvetlen_koltseg = kozvetlen_koltseg_szamitas(
             anyagkoltseg,
             energiakoltseg,
@@ -129,22 +127,28 @@ if st.button("Számítás"):
         )
         platform_dij = platform_dij_szamitas(
             eladasi_ar,
+            szallitasi_dij,
             platform_jutalek,
-            platform_minimum_dij,
-            afa_kulcs
+            platform_helyi_felar
         )
-        fedezet = fedezet_szamitas(
+        becsult_eredmeny = becsult_eredmeny_szamitas(
             eladasi_ar,
             kozvetlen_koltseg,
             platform_dij
         )
         haszonhanyad = haszonhanyad_szamitas(
-            fedezet,
+            becsult_eredmeny,
             eladasi_ar
         )
-        
+               
         st.divider()
         st.subheader("Kalkuláció eredménye")
+
+        if energiafogyasztas > 0:
+            st.caption("Az energiaköltség mért energiafogyasztás alapján készült.")
+        else:
+            st.caption("Az energiaköltség becsült energiafogyasztás alapján készült.")
+
 
         oszlop1, oszlop2, oszlop3 = st.columns(3)
 
@@ -158,27 +162,26 @@ if st.button("Számítás"):
         oszlop4, oszlop5 = st.columns(2)
 
         with oszlop4:
-            st.metric(
-                "Felhasznált energia",
-                f"{felhasznalt_energia:.2f} kWh"
-            )
+            st.metric("Összes energiafelhasználás", f"{felhasznalt_energia:.2f} kWh"
+    )
         with oszlop5:
             st.metric(
-                "Meska díj",
+                "Platformdíj",
                 f"{platform_dij:.0f} Ft"
             )
 
         st.divider()
-        st.subheader("Haszon")
+        st.subheader("Gazdasági eredmény")
 
-        haszon1, haszon2 = st.columns(2)
+        eredmeny1, eredmeny2 = st.columns(2)
 
-        with haszon1:
+        with eredmeny1:
             st.metric(
-                "Becsült haszon / db",
-                f"{fedezet:.0f} Ft"
+                "Becsült eredmény / db",
+                f"{becsult_eredmeny:.0f} Ft"
             )
-        with haszon2:
+
+        with eredmeny2:
             st.metric(
                 "Haszonhányad",
                 f"{haszonhanyad:.2f} %"

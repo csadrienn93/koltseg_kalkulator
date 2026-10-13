@@ -1,17 +1,8 @@
 import pandas as pd
 import math
 
-from adatkezeles import excel_adatok_beolvasasa
-
-def anyagkoltseg_szamitas(felhasznalt_alapanyag, anyag_ar, selejt):
-    # Kiszámítja az anyagköltséget a selejtes nyomtatásokkal együtt.
-    nyomtatasok_szama = selejt + 1
-    anyagkoltseg = (
-        felhasznalt_alapanyag / 1000
-        * anyag_ar
-        * nyomtatasok_szama
-    )
-    return anyagkoltseg
+def anyagkoltseg_szamitas(felhasznalt_alapanyag, anyag_ar):
+    return felhasznalt_alapanyag / 1000 * anyag_ar
 
 def beallitas_keresese(beallitasok, parameter_nev):
     for _, sor in beallitasok.iterrows():
@@ -24,36 +15,27 @@ def energiafogyasztas_becslese(nyomtatasi_ido, nyomtato_fogyasztas):
     energiafogyasztas = nyomtatasi_ido_ora * nyomtato_fogyasztas / 1000
     return energiafogyasztas
 
-def energiakoltseg_szamitas(energiafogyasztas, aram_ar, selejt):
-    nyomtatasok_szama = selejt + 1
-    energiakoltseg = (
-        energiafogyasztas
-        * aram_ar
-        * nyomtatasok_szama
-    )
-    return energiakoltseg
+def energiakoltseg_szamitas(energiafogyasztas, aram_ar):
+    return energiafogyasztas * aram_ar
 
 def kozvetlen_koltseg_szamitas(anyagkoltseg, energiakoltseg, csomagolasi_koltseg):
     kozvetlen_koltseg = anyagkoltseg + energiakoltseg + csomagolasi_koltseg
     return kozvetlen_koltseg
 
-def platform_dij_szamitas(eladasi_ar, jutalek_szazalek, minimum_dij, afa_kulcs):
-    jutalek = eladasi_ar * jutalek_szazalek / 100
-    if jutalek < minimum_dij:
-        jutalek = minimum_dij
-    platform_dij = jutalek * (1 + afa_kulcs / 100)
-    return platform_dij
+def platform_dij_szamitas(eladasi_ar, szallitasi_dij, jutalek_szazalek, helyi_felar_szazalek):
+    dijalap = eladasi_ar + szallitasi_dij
+    jutalek = dijalap * jutalek_szazalek / 100
+    helyi_felar = dijalap * helyi_felar_szazalek / 100
+    return jutalek + helyi_felar
 
-def fedezet_szamitas(eladasi_ar, termek_kozvetlen_koltsege, platform_dij):
-    fedezet = eladasi_ar - termek_kozvetlen_koltsege - platform_dij
-    return fedezet
+def becsult_eredmeny_szamitas(eladasi_ar,termek_kozvetlen_koltsege,platform_dij):
+    becsult_eredmeny = (eladasi_ar - termek_kozvetlen_koltsege - platform_dij)
+    return becsult_eredmeny
 
-def fedezeti_pont_szamitas(havi_fix_koltseg, fedezet):
-    if fedezet <= 0:
+def megteruleshez_szukseges_darabszam(indulo_beruhazas, becsult_eredmeny):
+    if indulo_beruhazas <= 0 or becsult_eredmeny <= 0:
         return None
-    fedezeti_pont = havi_fix_koltseg / fedezet
-
-    return math.ceil(fedezeti_pont)
+    return math.ceil(indulo_beruhazas / becsult_eredmeny)
 
 # Ha van megadott energiafogyasztás, azt használja, de ha nincs, akkor becsül.
 def energiafogyasztas_meghatarozasa(energiafogyasztas, nyomtatasi_ido, nyomtato_fogyasztas):
@@ -63,12 +45,10 @@ def energiafogyasztas_meghatarozasa(energiafogyasztas, nyomtatasi_ido, nyomtato_
         nyomtatasi_ido,
         nyomtato_fogyasztas
     )
-def haszonhanyad_szamitas(fedezet, eladasi_ar):
+def haszonhanyad_szamitas(becsult_eredmeny, eladasi_ar):
     if eladasi_ar <= 0:
         return 0
-
-    haszonhanyad = fedezet / eladasi_ar * 100
-
+    haszonhanyad = becsult_eredmeny / eladasi_ar * 100
     return haszonhanyad
     
 if __name__ == "__main__":
@@ -87,18 +67,14 @@ if __name__ == "__main__":
     beallitasok,
     "platform_jutalek"
     )
-    platform_minimum_dij = beallitas_keresese(
+    platform_helyi_felar = beallitas_keresese(
     beallitasok,
-    "platform_minimum_dij"
-    )
-    afa_kulcs = beallitas_keresese(
-    beallitasok,
-    "afa_kulcs"
+    "platform_helyi_felar"
     )
     havi_fix_koltseg = beallitas_keresese(
     beallitasok,
     "havi_fix_koltseg"
-)
+    )
    
     adatok["anyagkoltseg"] = adatok.apply(
     lambda sor: anyagkoltseg_szamitas(
@@ -136,12 +112,11 @@ if __name__ == "__main__":
     lambda ar: platform_dij_szamitas(
         ar,
         platform_jutalek,
-        platform_minimum_dij,
-        afa_kulcs
+        platform_helyi_felar
     )
 )
-    adatok["fedezet"] = adatok.apply(
-    lambda sor: fedezet_szamitas(
+    adatok["becsult_eredmeny"] = adatok.apply(
+    lambda sor: becsult_eredmeny_szamitas(
         sor["eladasi_ar"],
         sor["termek_kozvetlen_koltsege"],
         sor["platform_dij"]
@@ -161,4 +136,4 @@ if __name__ == "__main__":
     print(f"Közvetlen költség: {adatok['termek_kozvetlen_koltsege'].iloc[0]:.0f} Ft")
     print(f"Eladási ár: {adatok['eladasi_ar'].iloc[0]:g} Ft")
     print(f"Platformdíj: {adatok['platform_dij'].iloc[0]:.0f} Ft")
-    print(f"Fedezet: {adatok['fedezet'].iloc[0]:.0f} Ft")
+    print(f"Becsült eredmény: "f"{adatok['becsult_eredmeny'].iloc[0]:.0f} Ft")
