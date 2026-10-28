@@ -9,7 +9,8 @@ from kalkulacio import (
     kozvetlen_koltseg_szamitas,
     platform_dij_szamitas,
     becsult_eredmeny_szamitas,
-    haszonhanyad_szamitas
+    haszonhanyad_szamitas,
+    megteruleshez_szukseges_darabszam
 )
 
 st.set_page_config(
@@ -107,6 +108,10 @@ if st.button("Számítás"):
             beallitasok,
             "platform_helyi_felar"
         )
+        indulo_beruhazas = beallitas_keresese(
+            beallitasok,
+            "indulo_beruhazas"
+        )
         anyagkoltseg = anyagkoltseg_szamitas(
             felhasznalt_alapanyag,
             anyag_ar
@@ -140,6 +145,10 @@ if st.button("Számítás"):
             becsult_eredmeny,
             eladasi_ar
         )
+        megterules_darabszam = megteruleshez_szukseges_darabszam(
+            indulo_beruhazas,
+            becsult_eredmeny
+        )
                
         st.divider()
         st.subheader("Kalkuláció eredménye")
@@ -154,16 +163,22 @@ if st.button("Számítás"):
 
         with oszlop1:
             st.metric("Anyagköltség", f"{anyagkoltseg:.0f} Ft")
+
         with oszlop2:
             st.metric("Energiaköltség", f"{energiakoltseg:.0f} Ft")
+
         with oszlop3:
             st.metric("Közvetlen költség", f"{kozvetlen_koltseg:.0f} Ft")
+
 
         oszlop4, oszlop5 = st.columns(2)
 
         with oszlop4:
-            st.metric("Összes energiafelhasználás", f"{felhasznalt_energia:.2f} kWh"
-    )
+            st.metric(
+                "Összes energiafelhasználás",
+                f"{felhasznalt_energia:.2f} kWh"
+            )
+
         with oszlop5:
             st.metric(
                 "Platformdíj",
@@ -177,12 +192,30 @@ if st.button("Számítás"):
 
         with eredmeny1:
             st.metric(
-                "Becsült eredmény / db",
+                "Becsült haszon / db",
                 f"{becsult_eredmeny:.0f} Ft"
             )
-
         with eredmeny2:
             st.metric(
                 "Haszonhányad",
                 f"{haszonhanyad:.2f} %"
             )
+
+        st.divider()
+        st.subheader("Beruházás megtérülése")
+
+        megterules1, megterules2 = st.columns(2)
+
+        with megterules1:
+            st.metric(
+                "Induló beruházás",
+                f"{indulo_beruhazas:.0f} Ft"
+            )
+        with megterules2:
+            if megterules_darabszam is not None:
+                st.metric(
+                    "Megtérüléshez szükséges eladás",
+                    f"{megterules_darabszam} db"
+                )
+            else:
+                st.warning("A jelenlegi eredmény mellett a beruházás megtérülése nem számítható.")
