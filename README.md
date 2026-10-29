@@ -1,15 +1,17 @@
 # koltseg_kalkulator
-3D nyomtatási költség- (és megtérülési) kalkulátor 
+3D nyomtatási költségkalkulátor 
 
 A kalkulátor a szakdolgozat gyakorlati részéhez készült.
-A célja, hogy a megadott adatok alapján kiszámolja a 3D nyomtatott termék várható előállítási költségét, az egy termékre jutó becsült hasznot, és a haszonhányadot
+A célja, hogy a megadott adatok alapján kiszámolja a 3D nyomtatott termék várható előállítási költségét, az egy termékre jutó becsült hasznot, a haszonhányadot, valamint a megadott termékmennyiséghez tartozó összesített költségeket és eredményeket.
 
 Jelenlegi funkciói:
 - anyagköltség kiszámítása
 - energiafogyasztás becslése, ha nincsen mért adat
 - energiaköltség kiszámítása
-- a selejtes nyomtatások során felhasznált anyag és energia figyelembevétele
-- számol a csomagolás költségeivel
+- a gyártási selejt figyelembevétele
+- gyártandó / értékesítendő termékmennyiség kezelése
+- referencia gyártási tételben nyomtatott összes darabszám megadása
+- csomagolási költség számítása
 - kiszámolja az értékesítési platform díját, ehhez figyelembe veszi a szállítási díjat is
 - kiszámolja a közvetlen költségeket
 - kiszámolja a becsült adózás előtti nyereséget
@@ -20,7 +22,7 @@ Az általános beállításokat, például a villamos energia árát és a platf
 
 Ha mért energiafogyasztás nem áll rendelkezésre, a program a megadott nyomtatási idő és a nyomtató becsült teljesítményfelvétele alapján becsüli meg az energiafelhasználást.
 
-A selejtes nyomtatások költsége úgy vehető figyelembe, hogy a felhasználó az összes ténylegesen felhasznált alapanyag- és energiaértéket adja meg, beleértve a sikertelen nyomtatások felhasználását is.
+A selejtes nyomtatások költsége úgy vehető figyelembe, hogy a felhasználó az összes ténylegesen felhasznált alapanyag-, idő- és energiaértéket adja meg, beleértve a sikertelen és szükség esetén a pótló nyomtatások ráfordításait is.
 
 A kalkulátor felhasználói felülete Streamlit-tal 
 készült.
