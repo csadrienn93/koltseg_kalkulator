@@ -51,6 +51,10 @@ def haszonhanyad_szamitas(becsult_eredmeny, eladasi_ar):
         return 0
     haszonhanyad = becsult_eredmeny / eladasi_ar * 100
     return haszonhanyad
+
+def kalkulalt_munkadij_szamitas(kezelesi_ido_perc, oradij):
+    munkadij = (kezelesi_ido_perc / 60) * oradij
+    return round(munkadij, 2)
     
 if __name__ == "__main__":
 

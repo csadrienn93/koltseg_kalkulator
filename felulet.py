@@ -11,6 +11,7 @@ from kalkulacio import (
     becsult_eredmeny_szamitas,
     haszonhanyad_szamitas,
     # megteruleshez_szukseges_darabszam
+    kalkulalt_munkadij_szamitas,
 )
 
 st.set_page_config(
@@ -102,7 +103,21 @@ with gyartas_oszlop:
             step=0.01,
             format="%.3f",
             help="Add meg a gyártási tételhez összesen felhasznált mért energiát, beleértve a selejtes és pótló nyomtatásokat is. Ha nincs mért adat, hagyd 0 értéken."
-        )
+    )
+    kezelesi_ido_perc = st.number_input(
+        "Aktív kezelési idő egy nyomtatási ciklusra (perc)",
+        min_value=0,
+        value=0,
+        step=1,
+        help="Az előkészítésre, alkatrész levételére és utómunkára fordított emberi munkaidő."
+    )
+    oradij = st.number_input(
+        "Kalkulált munkadíj (Ft/óra)",
+        min_value=0,
+        value=3000,
+        step=500
+    )
+
 with ertekesites_oszlop:
     st.markdown("### Értékesítés")
 
@@ -171,6 +186,13 @@ if st.button("Számítás"):
 
         alapanyag_db = felhasznalt_alapanyag / ertekesitheto_darabszam
 
+        munkadij_tetel = kalkulalt_munkadij_szamitas(
+            kezelesi_ido_perc,
+            oradij
+        )
+        
+        munkadij_db = munkadij_tetel / ertekesitheto_darabszam
+
         energia_tetel = energiafogyasztas_meghatarozasa(
             energiafogyasztas,
             nyomtatasi_ido,
@@ -209,6 +231,15 @@ if st.button("Számítás"):
             platform_jutalek,
             platform_helyi_felar
         )
+        
+        teljes_gazdasagi_koltseg = (
+            kozvetlen_koltseg + platform_dij + munkadij_db
+        )
+
+        gazdasagi_eredmeny = (
+        eladasi_ar - teljes_gazdasagi_koltseg
+        )
+
         becsult_eredmeny = becsult_eredmeny_szamitas(
             eladasi_ar,
             kozvetlen_koltseg,
@@ -233,7 +264,10 @@ if st.button("Számítás"):
         osszes_szallitasi_dij = szallitasi_dij * rendelesek_szama
         osszes_platform_dij = platform_dij * darabszam
         osszes_arbevetel = eladasi_ar * darabszam
-        osszes_becsult_eredmeny = becsult_eredmeny * darabszam
+        osszes_becsult_eredmeny = becsult_eredmeny * darabszam      
+        osszes_munkadij = munkadij_db * darabszam
+        osszes_gazdasagi_eredmeny = gazdasagi_eredmeny * darabszam
+
     
         st.divider()
 
@@ -282,6 +316,14 @@ if st.button("Számítás"):
                     f"{becsult_eredmeny:.0f} Ft"
                 )
 
+                st.metric(
+                    "Kalkulált munkadíj / db",
+                    f"{munkadij_db:.0f} Ft"
+                )
+                st.metric(
+                    "Gazdasági eredmény / db",
+                    f"{gazdasagi_eredmeny:.0f} Ft"
+                )
 
         with eredmeny_jobb:
             st.subheader(
@@ -306,6 +348,14 @@ if st.button("Számítás"):
                 st.metric(
                     "Becsült összes eredmény",
                     f"{osszes_becsult_eredmeny:.0f} Ft"
+                )  
+                st.metric(
+                    "Összes kalkulált munkadíj",
+                    f"{osszes_munkadij:.0f} Ft"
+                )
+                st.metric(
+                    "Összes gazdasági eredmény",
+                    f"{osszes_gazdasagi_eredmeny:.0f} Ft"
                 )
 
             with jobb2:
