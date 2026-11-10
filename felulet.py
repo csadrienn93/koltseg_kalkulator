@@ -1,5 +1,6 @@
 import streamlit as st
 
+
 from adatkezeles import excel_adatok_beolvasasa
 from kalkulacio import (
     anyagkoltseg_szamitas,
@@ -178,11 +179,6 @@ if st.button("Számítás"):
             beallitasok,
             "platform_helyi_felar"
         )
-        #indulo_beruhazas = beallitas_keresese(
-        #    beallitasok,
-        #    "indulo_beruhazas"
-        #)
-        # Egy darabra jutó értékek meghatározása
 
         alapanyag_db = felhasznalt_alapanyag / ertekesitheto_darabszam
 
@@ -249,10 +245,7 @@ if st.button("Számítás"):
             becsult_eredmeny,
             eladasi_ar
         )
-        #megterules_darabszam = megteruleshez_szukseges_darabszam(
-        #    indulo_beruhazas,
-        #    becsult_eredmeny
-        #)
+
         osszes_alapanyag = alapanyag_db * darabszam
         osszes_energia = felhasznalt_energia * darabszam
 
@@ -377,24 +370,5 @@ if st.button("Számítás"):
                 f"Összes energiafelhasználás: {osszes_energia:.2f} kWh | "
                 f"Összes szállítási díj: {osszes_szallitasi_dij:.0f} Ft"
                 )
-
-      
-
-       # st.divider()
-        #st.subheader("Beruházás megtérülése")
-
-       # megterules1, megterules2 = st.columns(2)
-
-       # with megterules1:
-        #    st.metric(
-        #        "Induló beruházás",
-         #       f"{indulo_beruhazas:.0f} Ft"
-          #  )
-        #with megterules2:
-         #   if megterules_darabszam is not None:
-          #      st.metric(
-           #         "Megtérüléshez szükséges eladás",
-            #        f"{megterules_darabszam} db"
-             #   )
-            #else:
-             #   st.warning("A jelenlegi eredmény mellett a beruházás megtérülése nem számítható.")
+                
+        st.caption("Egy termékre vonatkozó, adózás előtti számítás. A saját kalkulált munkadíj nem pénzkiadásként szerepel.")

@@ -19,9 +19,18 @@ def excel_adatok_beolvasasa():
 
     return adatok, beallitasok
 
+    
+def beallitasok_szotarba(beallitasok):
+    return dict(zip(beallitasok["parameter"], beallitasok["ertek"]))
+
+
 if __name__ == "__main__":
 
     adatok, beallitasok = excel_adatok_beolvasasa()
 
     print("Adatok:", len(adatok), "sor")
     print("Beállítások:", len(beallitasok), "sor")
+
+    parameterek = beallitasok_szotarba(beallitasok)
+    for nev, ertek in parameterek.items():
+        print(f"{nev}: {ertek}")
