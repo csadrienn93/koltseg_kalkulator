@@ -1,6 +1,12 @@
 import math
 
-from adatkezeles import excel_adatok_beolvasasa, beallitasok_szotarba
+import pandas as pd
+
+from adatkezeles import (
+    excel_adatok_beolvasasa,
+    beallitasok_szotarba,
+    szakdolgozati_minta,
+)
 from termek_elemzes import termek_koltsegei, platform_arany
 
 
@@ -36,26 +42,28 @@ def termek_h3_eredmenye(sor, p, eladasi_ar=None):
         "penzugyi_fedezet": penzugyi_fedezet,
     }
 
-PIACI_ARAK = {
-    "Vonóhorog-védődugó": 7790,
-    "Motorháztető-nyitó fül": 1890,
-    "Emelésipont-takaró": 2790,
-    "Tanksapka-rögzítőpánt": 990,
-    "Hátsó hamutartó javítóelem (pár)": 1490,
-}
+def piaci_ar(sor):
+    if "piaci_ar" in sor and pd.notna(sor["piaci_ar"]):
+        return sor["piaci_ar"]
+    return sor["eladasi_ar"]
 
-def havi_eredmenyek(adatok, p, havi_db, arak=None):
+def piaci_arelony(sor, ar=None):
+    alternativa = sor["alternativa_beszerzesi_ar"]
+    if pd.isna(alternativa):
+        return "nincs összehasonlítható adat"
+    if ar is None:
+        ar = piaci_ar(sor)
+    vegosszeg = ar + sor["szallitasi_dij"]
+    return "igen" if vegosszeg <= 0.9 * alternativa else "nem"
+
+def havi_eredmenyek(adatok, p, havi_db, piaci=False):
     gazdasagi = 0
     penzugyi = 0
     bevetel = 0
     hipa_levonhato = 0
     for _, sor in adatok.iterrows():
-        if arak is None:
-            e = termek_h3_eredmenye(sor, p)
-        else:
-            if sor["termek"] not in arak:
-                raise ValueError(f"Hiányzó piaci ár: {sor['termek']}")
-            e = termek_h3_eredmenye(sor, p, eladasi_ar=arak[sor["termek"]])
+        ar = piaci_ar(sor) if piaci else None
+        e = termek_h3_eredmenye(sor, p, eladasi_ar=ar)
         gazdasagi += e["gazdasagi_eredmeny"] * havi_db
         penzugyi += e["penzugyi_fedezet"] * havi_db
         bevetel += e["bevetel"] * havi_db
@@ -66,7 +74,6 @@ def havi_eredmenyek(adatok, p, havi_db, arak=None):
     gazdasagi -= havi_teher
     penzugyi -= havi_teher
     return gazdasagi, penzugyi
-
 
 def eves_kozterhek(eves_bevetel, eves_hipa_levonhato, p):
     if p["foallasu"] == 1:
@@ -113,6 +120,7 @@ def beruhazasok(p):
 if __name__ == "__main__":
 
     adatok, beallitasok = excel_adatok_beolvasasa()
+    adatok = szakdolgozati_minta(adatok)
     p = beallitasok_szotarba(beallitasok)
 
     print(f"\nH3 – TERMÉKENKÉNTI EREDMÉNYEK (selejtarány: {p['selejtarany']:.0f}%)\n")
@@ -171,17 +179,18 @@ if __name__ == "__main__":
     print("H3 – PIACI ÁRKÉPZÉSI FORGATÓKÖNYV\n")
 
     for _, sor in adatok.iterrows():
-        ar = PIACI_ARAK[sor["termek"]]
+        ar = piaci_ar(sor)
         e = termek_h3_eredmenye(sor, p, eladasi_ar=ar)
         print(
             f"  {sor['termek']}: {ar:.0f} Ft | "
             f"gazdasági eredmény: {e['gazdasagi_eredmeny']:.0f} Ft/db | "
-            f"pénzügyi fedezet: {e['penzugyi_fedezet']:.0f} Ft/db"
+            f"pénzügyi fedezet: {e['penzugyi_fedezet']:.0f} Ft/db | "
+            f"10%-os árelőny: {piaci_arelony(sor, ar)}"
         )
     print()
 
     for havi_db in [1, 3, 6]:
-        gazd, penz = havi_eredmenyek(adatok, p, havi_db, arak=PIACI_ARAK)
+        gazd, penz = havi_eredmenyek(adatok, p, havi_db, piaci=True)
         penz_honap = megterulesi_honap(penzugyi_beruhazas, penz)
         gazd_honap = megterulesi_honap(gazdasagi_beruhazas, gazd)
         print(

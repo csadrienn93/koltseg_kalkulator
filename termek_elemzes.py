@@ -1,5 +1,10 @@
-from adatkezeles import excel_adatok_beolvasasa, beallitasok_szotarba
+import pandas as pd
 
+from adatkezeles import (
+    excel_adatok_beolvasasa,
+    beallitasok_szotarba,
+    szakdolgozati_minta,
+)
 
 def termek_koltsegei(sor, p, selejttel=False):
 
@@ -27,22 +32,19 @@ def termek_koltsegei(sor, p, selejttel=False):
         "osszes": anyag + energia + munkadij + csomagolas + futar,
     }
 
-
 def platform_arany(p):
     return (p["platform_jutalek"] + p["platform_helyi_felar"]) / 100
-
 
 def onkoltsegi_vegosszeg(koltsegek, p):
     return koltsegek["osszes"] / (1 - platform_arany(p))
 
-
 def minimalis_eladasi_ar(koltsegek, sor, p):
     return onkoltsegi_vegosszeg(koltsegek, p) - sor["szallitasi_dij"]
-
 
 if __name__ == "__main__":
 
     adatok, beallitasok = excel_adatok_beolvasasa()
+    adatok = szakdolgozati_minta(adatok)
     p = beallitasok_szotarba(beallitasok)
 
     for _, sor in adatok.iterrows():
@@ -64,9 +66,9 @@ if __name__ == "__main__":
         print(f"  Ebből minimális termékár:       {minimalis_eladasi_ar(k, sor, p):8.0f} Ft")
 
         alternativa = sor["alternativa_beszerzesi_ar"]
-        if alternativa == alternativa:
+        if pd.notna(alternativa):
             olcsobb = vegosszeg < alternativa
             print(f"  Kereskedelmi alternatíva:       {alternativa:8.0f} Ft")
             print(f"  H2 (3D nyomtatott olcsóbb): {'igen' if olcsobb else 'nem'}")
         else:
-            print("  Kereskedelmi alternatíva: nincs adat")
+            print("  H2: nincs összehasonlítható adat")
