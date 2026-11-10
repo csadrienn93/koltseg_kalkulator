@@ -1,6 +1,5 @@
 import streamlit as st
 
-
 from adatkezeles import excel_adatok_beolvasasa
 from kalkulacio import (
     anyagkoltseg_szamitas,
@@ -10,7 +9,6 @@ from kalkulacio import (
     kozvetlen_koltseg_szamitas,
     platform_dij_szamitas,
     becsult_eredmeny_szamitas,
-    haszonhanyad_szamitas,
     # megteruleshez_szukseges_darabszam
     kalkulalt_munkadij_szamitas,
 )
@@ -51,7 +49,6 @@ with termek_oszlop:
         value=1,
         step=1
     )
-
     rendelesek_szama = st.number_input(
         "Rendelések száma",
         min_value=1,
@@ -90,8 +87,10 @@ with gyartas_oszlop:
         step=100
     )
     felhasznalt_alapanyag = st.number_input("Felhasznált alapanyag a referencia gyártási tételhez (g, selejttel együtt)",
-        min_value=0,
-        step=1,
+        min_value=0.0,
+        value=0.0,
+        step=0.01,
+        format="%.2f",
         help=("Add meg a referencia gyártási tételhez összesen felhasznált alapanyag mennyiségét, beleértve a selejtes és pótló nyomtatások anyagigényét is.")
     )
     nyomtatasi_ido = st.number_input("Összes nyomtatási idő a referencia gyártási tételhez (perc, selejttel együtt)",
@@ -106,11 +105,12 @@ with gyartas_oszlop:
             help="Add meg a gyártási tételhez összesen felhasznált mért energiát, beleértve a selejtes és pótló nyomtatásokat is. Ha nincs mért adat, hagyd 0 értéken."
     )
     kezelesi_ido_perc = st.number_input(
-        "Aktív kezelési idő egy nyomtatási ciklusra (perc)",
-        min_value=0,
-        value=0,
-        step=1,
-        help="Az előkészítésre, alkatrész levételére és utómunkára fordított emberi munkaidő."
+            "Összes aktív kezelési idő a referencia gyártási tételhez (perc)",
+            min_value=0,
+            value=0,
+            step=1,
+            help=("A teljes referencia gyártási tétel aktív munkaideje: nyomtatás előkészítése, indítása, alkatrészek levétele, utómunka és ellenőrzés." 
+        "Több nyomtatási ciklus esetén az összes kezelési időt add meg. A felügyelet nélküli nyomtatási időt és az egyszeri CAD-tervezést ne számold bele.")
     )
     oradij = st.number_input(
         "Kalkulált munkadíj (Ft/óra)",
@@ -180,6 +180,12 @@ if st.button("Számítás"):
             "platform_helyi_felar"
         )
 
+        futarkoltseg = beallitas_keresese(
+            beallitasok,
+            "atlagos_futarkoltseg"
+        )
+        
+
         alapanyag_db = felhasznalt_alapanyag / ertekesitheto_darabszam
 
         munkadij_tetel = kalkulalt_munkadij_szamitas(
@@ -203,6 +209,10 @@ if st.button("Számítás"):
 
         szallitasi_dij_db = (
             szallitasi_dij * rendelesek_szama / darabszam
+        )
+
+        futarkoltseg_db = (
+            futarkoltseg * rendelesek_szama / darabszam
         )
 
         anyagkoltseg = anyagkoltseg_szamitas(
@@ -231,9 +241,9 @@ if st.button("Számítás"):
         teljes_gazdasagi_koltseg = (
             kozvetlen_koltseg + platform_dij + munkadij_db
         )
-
+        
         gazdasagi_eredmeny = (
-        eladasi_ar - teljes_gazdasagi_koltseg
+            eladasi_ar + szallitasi_dij_db - teljes_gazdasagi_koltseg - futarkoltseg_db
         )
 
         becsult_eredmeny = becsult_eredmeny_szamitas(
@@ -241,10 +251,12 @@ if st.button("Számítás"):
             kozvetlen_koltseg,
             platform_dij
         )
-        haszonhanyad = haszonhanyad_szamitas(
-            becsult_eredmeny,
-            eladasi_ar
+        becsult_eredmeny += szallitasi_dij_db - futarkoltseg_db
+        
+        gazdasagi_eredmenyhanyad = (
+            gazdasagi_eredmeny / (eladasi_ar + szallitasi_dij_db) * 100
         )
+
 
         osszes_alapanyag = alapanyag_db * darabszam
         osszes_energia = felhasznalt_energia * darabszam
@@ -289,11 +301,12 @@ if st.button("Számítás"):
                 st.metric(
                     "Energiafelhasználás / db",
                     f"{felhasznalt_energia:.2f} kWh"
-                )
+                )    
                 st.metric(
-                "Haszonhányad",
-                 f"{haszonhanyad:.2f} %"
+                    "Gazdasági eredményhányad",
+                    f"{gazdasagi_eredmenyhanyad:.2f} %"
                 )
+
 
             with bal2:
                 st.metric(
@@ -366,7 +379,7 @@ if st.button("Számítás"):
                 )
 
             st.caption(
-                f"Összes felhasznált alapanyag: {osszes_alapanyag:.0f} g | "
+                f"Összes felhasznált alapanyag: {osszes_alapanyag:.2f} g | "
                 f"Összes energiafelhasználás: {osszes_energia:.2f} kWh | "
                 f"Összes szállítási díj: {osszes_szallitasi_dij:.0f} Ft"
                 )
