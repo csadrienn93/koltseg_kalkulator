@@ -278,7 +278,6 @@ def egyedi_kalkulacio():
         gazdasagi_eredmeny / (eladasi_ar + szallitasi_dij_db) * 100
     )
 
-
     osszes_alapanyag = alapanyag_db * darabszam
     osszes_energia = felhasznalt_energia * darabszam
 
@@ -293,7 +292,6 @@ def egyedi_kalkulacio():
     osszes_becsult_eredmeny = becsult_eredmeny * darabszam      
     osszes_munkadij = munkadij_db * darabszam
     osszes_gazdasagi_eredmeny = gazdasagi_eredmeny * darabszam
-
 
     st.divider()
 
@@ -327,7 +325,6 @@ def egyedi_kalkulacio():
                 "Gazdasági eredményhányad",
                 f"{gazdasagi_eredmenyhanyad:.2f} %"
             )
-
 
         with bal2:
             st.metric(
@@ -411,12 +408,14 @@ def vizsgalt_alkatreszek():
     adatok, p = termekek_kivalasztasa("minden_termek_h1h2")
 
     st.write(
-        "Az öt vizsgált alkatrész teljes költsége a dokumentált "
-        "próbanyomtatási selejttel együtt, valamint a H1 és a H2 "
-        "hipotézis termékenkénti eredménye. Az adatok az Excel "
-        "*Adatok* és *Beallitasok* munkalapjáról származnak."
+        "Az öt vizsgált alkatrész teljes költsége a dokumentált próbanyomtatási selejttel együtt, valamint a H1 és a H2 hipotézis termékenkénti eredménye."
+        "Az adatok az Excel *Adatok* és *Beallitasok* munkalapjáról származnak."
     )
 
+    st.caption(
+        "A költségek a dokumentált próbanyomtatási selejtet is tartalmazzák, így az első gyártási kör költségeit mutatják. "
+    "A H3 vállalkozási modellben ez a selejt egyszeri induló ráfordításként szerepel."
+    )
     sorok = []
     h1_db = 0
     h2_db = 0
@@ -484,11 +483,6 @@ def vizsgalt_alkatreszek():
         "alternatíva szállítással növelt beszerzési árával."
     )
 
-
-# ---------------------------------------------------------------
-# 3. fül: vállalkozási szint és megtérülés (H3)
-# ---------------------------------------------------------------
-
 def vallalkozas_megterules():
     adatok, p = termekek_kivalasztasa("minden_termek_h3")
 
@@ -498,7 +492,11 @@ def vallalkozas_megterules():
         "forgatókönyvek érzékenységvizsgálatot szolgálnak, nem keresleti "
         "előrejelzések."
     )
-
+    st.caption(
+        "A dokumentált próbanyomtatási selejt egyszeri induló ráfordításként szerepel a beruházásban. "
+        "A selejtarány csúszka ettől elkülönítve a későbbi gyártás feltételezett selejtarányát veszi figyelembe."
+    )
+    
     v1, v2, v3 = st.columns(3)
     with v1:
         arazas = st.radio(
@@ -525,7 +523,6 @@ def vallalkozas_megterules():
     q = dict(p)
     q["selejtarany"] = selejtarany
 
-    # Termékenkénti eredmény
     sorok = []
     eves_bevetel = 0
     eves_hipa_levonhato = 0
@@ -560,9 +557,8 @@ def vallalkozas_megterules():
             "feltételezett forgatókönyvi ár."
         )
 
-    # Havi eredmény és megtérülés
     gazd, penz = havi_eredmenyek(adatok, q, havi_db, piaci=piaci)
-    penzugyi_beruhazas, gazdasagi_beruhazas = beruhazasok(p)
+    penzugyi_beruhazas, gazdasagi_beruhazas = beruhazasok(p, adatok)
     h_penz = megterulesi_honap(penzugyi_beruhazas, penz)
     h_gazd = megterulesi_honap(gazdasagi_beruhazas, gazd)
 
@@ -582,8 +578,6 @@ def vallalkozas_megterules():
         st.metric("Havi gazdasági eredmény (közterhek után)", ft(gazd))
         st.metric("Megtérülési idő", honap_szoveg(h_gazd))
 
-    # A H3 csak a szakdolgozati alapforgatókönyvben értékelhető:
-    # szakdolgozati minta, költségalapú árazás, 3 db/termék/hó, 0% selejt.
     alapforgatokonyv = (
         not st.session_state["minden_termek_h3"]
         and not piaci
@@ -608,7 +602,6 @@ def vallalkozas_megterules():
             "árazás mellett számított eredményére vonatkozik."
         )
 
-    # Halmozott pénzáram
     honapok = range(0, 37)
     halmozott = pd.DataFrame({
         "Pénzügyi (Ft)": [-penzugyi_beruhazas + h * penz for h in honapok],
@@ -618,7 +611,6 @@ def vallalkozas_megterules():
     st.line_chart(halmozott)
     st.caption("A görbe a nulla vonalat a megtérülés hónapjában éri el.")
 
-    # Közterhek
     t = eves_kozterhek(eves_bevetel, eves_hipa_levonhato, q)
     st.markdown("#### Éves közterhek")
     st.dataframe(pd.DataFrame([
@@ -640,7 +632,6 @@ def vallalkozas_megterules():
         "HIPA a helyi mentességi határig 0 Ft."
     )
 
-    # Forgatókönyv-összehasonlítás
     st.markdown(f"#### Forgatókönyvek összehasonlítása ({selejtarany}% selejttel)")
     osszevetes = []
     for nev, forgatokonyv_piaci in [("Költségalapú", False), ("Piaci", True)]:

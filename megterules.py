@@ -9,7 +9,6 @@ from adatkezeles import (
 )
 from termek_elemzes import termek_koltsegei, platform_arany
 
-
 def termek_h3_eredmenye(sor, p, eladasi_ar=None):
 
     k = termek_koltsegei(sor, p, selejttel=False)
@@ -112,9 +111,38 @@ def megterulesi_honap(beruhazas, havi_osszeg):
         return None
     return math.ceil(beruhazas / havi_osszeg)
 
-def beruhazasok(p):
-    penzugyi = p["indulo_beruhazas"] + p["egyeb_indulo_kiadas"]
-    gazdasagi = penzugyi + p["tervezesi_ido_ora"] * p["kalkulalt_oradij"]
+
+def beruhazasok(p, adatok=None):
+    penzugyi = (
+        p["indulo_beruhazas"]
+        + p["egyeb_indulo_kiadas"]
+    )
+
+    gazdasagi = (
+        penzugyi
+        + p["tervezesi_ido_ora"] * p["kalkulalt_oradij"]
+    )
+
+    if adatok is not None:
+        for _, sor in adatok.iterrows():
+            selejt_anyag = (
+                sor["selejt_alapanyag"] / 1000
+                * sor["anyag_ar"]
+            )
+            selejt_energia = (
+                sor["selejt_energia"]
+                * p["villamos_energia_ar"]
+            )
+            selejt_munkadij = (
+                sor["selejt_kezelesi_ido"] / 60
+                * p["kalkulalt_oradij"]
+            )
+            penzugyi += selejt_anyag + selejt_energia
+            gazdasagi += (
+                selejt_anyag
+                + selejt_energia
+                + selejt_munkadij
+            )
     return penzugyi, gazdasagi
 
 if __name__ == "__main__":
@@ -135,7 +163,7 @@ if __name__ == "__main__":
         print(f"  Pénzügyi fedezet:    {e['penzugyi_fedezet']:8.0f} Ft/db")
         print()
 
-    penzugyi_beruhazas, gazdasagi_beruhazas = beruhazasok(p)
+    penzugyi_beruhazas, gazdasagi_beruhazas = beruhazasok(p, adatok)
 
     print("H3 – MEGTÉRÜLÉS (közterhekkel)\n")
     print(f"  Pénzügyi beruházás:  {penzugyi_beruhazas:8.0f} Ft")
